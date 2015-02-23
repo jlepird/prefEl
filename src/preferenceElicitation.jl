@@ -2,7 +2,7 @@ module preferenceElicitation
 
 export prefEl, 
        @addPref,
-       infer 
+       infer,suggest
 
 importall Base
 
