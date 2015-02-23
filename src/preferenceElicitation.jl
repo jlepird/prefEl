@@ -1,3 +1,4 @@
+using Distributions # force user load for priors
 module preferenceElicitation
 
 export prefEl, 
