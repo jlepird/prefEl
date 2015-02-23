@@ -35,27 +35,50 @@ function logPrior{R <: Real}(x::Vector{R}, priors::Vector{Distribution})
 			@inbounds out += logpdf(priors[i],x[i])
 		end
 	end
+	if out == -Inf
+		out = realmin()
+	end
 	return out
 end
 
 using NLopt
 function infer(p::PrefEl)
+
+	# Set up optimization
 	n = size(p.data,2)
-	opt = Opt(:LN_NEWUOA,n)
+	opt = Opt(:LN_NEWUOA_BOUND,n)
 	xtol_rel!(opt,1e-4)
 	
+	# Create dummy function
 	f(x,grad) = calculateLogProb(x,p)
+
+	# Want MAP estimate
 	max_objective!(opt,f)
 
+	# Restrict optimization to be within support of prior
+	# necessary for priors like the Exponential dist
+	lb = zeros(n)
+	ub = zeros(n)
+	for i in 1:n
+		s = support(p.priors[i])
+		lb[i] = s.lb
+		ub[i] = s.ub
+	end
+	lower_bounds!(opt,lb)
+	upper_bounds!(opt,ub)
+
+	# Set the starting point to be the prior mode
 	means = zeros(F,n)
 	for i in 1:n
-		means[i] = mean(p.priors[i])
+		means[i] = mode(p.priors[i])
 		if isnan(means[i])
 			means[i] = 0.0
 		end
 	end
 
 	minF, maxX, ret = optimize(opt,means)
+
+	println("Optimization returned with code $ret")
 
 	return maxX
 end
