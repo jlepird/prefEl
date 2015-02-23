@@ -6,7 +6,7 @@ Preference elicitation relieves some of this burden. Instead of deciding the tra
 ### Installation
 To install, simply run 
 ```julia
-Pkg.clone(“https://github.com/jlepird/preferenceElicitation.git”)
+Pkg.clone("https://github.com/jlepird/preferenceElicitation.git")
 ```
 Note: if you are behind a proxy server, you’ll need to configure git differently. The following commands should do it:
 ```julia
@@ -20,7 +20,8 @@ Once installed, load the package and create your preference elicitation object:
 p = prefEl([1 0;   # first design
             0 1;   # second design
             0 0;], # third design
-            priors = [Normal(0,1), Normal(0,1)]) # Specify priors for each variable to be Guassian with mean 0 and variance 1
+            priors = [Normal(0,1), Normal(0,1)]) # Specify priors for each variable
+                                                  # to be Guassian with mean 0 and variance 1
 ```
 Preferences are put in with the ```@addPref``` macro:
 ```julia
