@@ -1,6 +1,8 @@
 function calculateLogProb(x,p::PrefEl)
 	out = 0.0
 
+	# println("x = $x")
+
 	for i in 1:size(p.strict,1)
 		out += getLogStrictProb(x,p.data[p.strict[i,1],:],p.data[p.strict[i,2],:],p.Sigma)
 	end
@@ -9,7 +11,7 @@ function calculateLogProb(x,p::PrefEl)
 		out += getLogIndifProb(x,p.data[p.indif[i,1],:],p.data[p.indif[i,2],:],p.Sigma)
 	end
 
-	return out + logPrior(x,p.priors)
+	return out + logPrior(x,p.priors.dists)
 end
 
 function getLogStrictProb{R<:Real}(x::Array{R,1}, a::Array{R,2}, b::Array{R,2}, Sigma::Array{R,2})
@@ -47,7 +49,7 @@ function infer(p::PrefEl)
 	# Set up optimization
 	n = size(p.data,2)
 	opt = Opt(:LN_NEWUOA_BOUND,n)
-	xtol_rel!(opt,1e-4)
+	xtol_rel!(opt,1e-6)
 	
 	# Create dummy function
 	f(x,grad) = calculateLogProb(x,p)
@@ -60,9 +62,9 @@ function infer(p::PrefEl)
 	lb = zeros(n)
 	ub = zeros(n)
 	for i in 1:n
-		s = support(p.priors[i])
-		lb[i] = s.lb
-		ub[i] = s.ub
+		s = support(p.priors.dists[i])
+		lb[i] = max(s.lb,p.priors.lb[i])
+		ub[i] = min(s.ub,p.priors.ub[i])
 	end
 	lower_bounds!(opt,lb)
 	upper_bounds!(opt,ub)
@@ -70,7 +72,7 @@ function infer(p::PrefEl)
 	# Set the starting point to be the prior mode
 	means = zeros(F,n)
 	for i in 1:n
-		means[i] = mode(p.priors[i])
+		means[i] = mean(p.priors.dists[i]) # Would like to use mode, but exponential will kill autodiff because it'll check negative values
 		if isnan(means[i])
 			means[i] = 0.0
 		end

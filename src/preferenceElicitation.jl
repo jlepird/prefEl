@@ -3,7 +3,8 @@ module preferenceElicitation
 
 export prefEl, 
        @addPref,
-       infer,suggest
+       infer,suggest,
+       Priors 
 
 importall Base
 
@@ -12,10 +13,12 @@ using Distributions
 # Support for 32 bit machines
 F = typeof(1.0)
 
+include("priors.jl")
+
 # Main type to hold all our data
 type PrefEl
 	data::Array{F,2}
-	priors::Vector{Distribution}
+	priors::Priors
 	Sigma::Array{F,2}
 	strict::Array{Int,2}
 	indif::Array{Int,2}
@@ -33,10 +36,11 @@ function prefEl(data; strict = zeros(Int,0,2),
 
 	n = size(data,2) # each dimension
 	if isempty(priors) # give them an improper uniform distribution
-		priors = Array(Uniform,n)
+		p = Array(Uniform,n)
 		for i in 1:size(data,2)
-			priors[i] = Uniform(-Inf,Inf)
-		end
+			p[i] = Uniform(-Inf,Inf)
+		end 
+		priors = Priors(dists = p)
 	end
 
 	# Set covariance matrix
