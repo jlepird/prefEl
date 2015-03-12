@@ -11,7 +11,11 @@ function calculateLogProb(x,p::PrefEl)
 		out += getLogIndifProb(x,p.data[p.indif[i,1],:],p.data[p.indif[i,2],:],p.Sigma)
 	end
 
-	return out + logPrior(x,p.priors.dists)
+	out += logPrior(x,p.priors.dists)
+
+	println(out)
+
+	return out 
 end
 
 function getLogStrictProb{R<:Real}(x::Array{R,1}, a::Array{R,2}, b::Array{R,2}, Sigma::Array{R,2})
@@ -44,45 +48,60 @@ function logPrior{R <: Real}(x::Vector{R}, priors::Vector{Distribution})
 end
 
 using NLopt
-function infer(p::PrefEl)
+function infer(p::PrefEl; method = "MAP")
 
-	# Set up optimization
-	n = size(p.data,2)
-	opt = Opt(:LN_NEWUOA_BOUND,n)
-	xtol_rel!(opt,1e-6)
-	
-	# Create dummy function
-	f(x,grad) = calculateLogProb(x,p)
+	if method == "MAP"
 
-	# Want MAP estimate
-	max_objective!(opt,f)
+		# Set up optimization
+		n = size(p.data,2)
+		opt = Opt(:LN_NEWUOA_BOUND,n) # slow
+		# opt = Opt(:LN_BOBYQA, n) # really slow
+		# opt = Opt(:LN_COBYLA, n) # slow
+		# opt = Opt(:LD_LBFGS,n)
+		xtol_rel!(opt,1e-4)
+		# ftol_rel!(opt,1e-8)
+		
+		# Create dummy function
+		f(x,grad) = calculateLogProb(x,p)
 
-	# Restrict optimization to be within support of prior
-	# necessary for priors like the Exponential dist
-	lb = zeros(n)
-	ub = zeros(n)
-	for i in 1:n
-		s = support(p.priors.dists[i])
-		lb[i] = max(s.lb,p.priors.lb[i])
-		ub[i] = min(s.ub,p.priors.ub[i])
-	end
-	lower_bounds!(opt,lb)
-	upper_bounds!(opt,ub)
+		# Want MAP estimate
+		max_objective!(opt,f)
 
-	# Set the starting point to be the prior mode
-	means = zeros(F,n)
-	for i in 1:n
-		means[i] = mean(p.priors.dists[i]) # Would like to use mode, but exponential will kill autodiff because it'll check negative values
-		if isnan(means[i])
-			means[i] = 0.0
+		# Restrict optimization to be within support of prior
+		# necessary for priors like the Exponential dist
+		lb = zeros(n)
+		ub = zeros(n)
+		for i in 1:n
+			s = support(p.priors.dists[i])
+			lb[i] = max(s.lb,p.priors.lb[i])
+			ub[i] = min(s.ub,p.priors.ub[i])
 		end
+		lower_bounds!(opt,lb)
+		upper_bounds!(opt,ub)
+
+		# Set the starting point to be the prior mode
+		means = zeros(F,n)
+		for i in 1:n
+			means[i] = mean(p.priors.dists[i]) # Would like to use mode, but exponential will kill autodiff because it'll check negative values
+			if isnan(means[i])
+				means[i] = 0.0
+			end
+		end
+
+		minF, maxX, ret = optimize(opt,means)
+
+		println(size(maxX))
+
+		println("Optimization returned with code $ret")
+
+		return maxX
+
+	elseif method == "MCMC"
+		samples = getMCMCSamples(p)
+		return vec(mean(samples,1))
+	else
+		error("Unknown method $method")
 	end
-
-	minF, maxX, ret = optimize(opt,means)
-
-	println("Optimization returned with code $ret")
-
-	return maxX
 end
 
 function suggest(p::PrefEl)

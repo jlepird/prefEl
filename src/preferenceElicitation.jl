@@ -35,7 +35,7 @@ function prefEl(data; strict = zeros(Int,0,2),
 	data = float(data)
 
 	n = size(data,2) # each dimension
-	if isempty(priors) # give them an improper uniform distribution
+	if priors == [] # give them an improper uniform distribution
 		p = Array(Uniform,n)
 		for i in 1:size(data,2)
 			p[i] = Uniform(-Inf,Inf)
