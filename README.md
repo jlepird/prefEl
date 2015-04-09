@@ -34,6 +34,8 @@ To learn your ideal weights, use the ```infer()``` function after putting in you
 ```julia
 infer(p)
 ```
+By default, this calculates the MAP estimate of the posterior. To get the posterior mean estimate instead, you can use  ```infer(p, method = "MCMC")```. 
+
 Finally, preference elicitation can tell you which comparision will tell it the most by using the ```suggest()``` method:
 ```julia
 suggest(p)
