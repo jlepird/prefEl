@@ -15,18 +15,19 @@ run(`git config --global url."https://".insteadOf git://`) # forces git to use h
 ```
 
 ### Example 
-Once installed, load the package and create your preference elicitation object:
+Once installed, begin by creating your preference elicitation object:
 ```julia
+using preferenceElicitation # load package
 p = prefEl([1 0;   # first design
             0 1;   # second design
-            0 0;], # third design
+            0 0], # third design
             priors = [Normal(0,1), Normal(0,1)]) # Specify priors for each variable
                                                   # to be Guassian with mean 0 and variance 1
 ```
 Preferences are put in with the ```@addPref``` macro:
 ```julia
 @addPref p 1 > 3  # prefer design 1 to design 3
-@addPref p 2 > 3  # prefer design 2 to design 3
+@addPref p 3 < 2  # prefer design 2 to design 3
 @addPref p 1 == 2 # indifferent between designs 1 and 2
 ```
 To learn your ideal weights, use the ```infer()``` function after putting in your preferences:
